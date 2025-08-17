@@ -75,16 +75,18 @@ export default function App() {
     }
   }, [setState, state.storyBlocks, state.ideaBlocks]);
 
+  // ✅ Fixed: include currentTab in deps, always stop event propagation
   const handleMouseDown = useCallback((e: React.MouseEvent, blockId: string) => {
     if (state.isConnecting) return;
+
+    e.stopPropagation();
+    e.preventDefault();
 
     const currentBlocks = state.currentTab === 'ideas' ? state.ideaBlocks : state.storyBlocks;
     const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
 
-    e.stopPropagation();
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
@@ -93,12 +95,13 @@ export default function App() {
       draggedBlock: blockId,
       selectedBlock: blockId,
       dragOffset: { x: offsetX, y: offsetY },
-      isDraggingViewport: false // Ensure viewport dragging is disabled
+      isDraggingViewport: false
     }));
-  }, [state.isConnecting, state.storyBlocks, state.ideaBlocks, setState]);
+  }, [state.isConnecting, state.currentTab, state.storyBlocks, state.ideaBlocks, setState]);
 
+  // ✅ Tightened: only trigger viewport drag if true background
   const handleViewportMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.canvas-background')) {
+    if (e.target === e.currentTarget) {
       e.preventDefault();
       setState(prev => ({
         ...prev,
@@ -137,7 +140,6 @@ export default function App() {
       draggedBlock: null,
       isDraggingViewport: false,
       resizingBlock: null,
-      // Clear any dragging state when mouse is released
       dragOffset: { x: 0, y: 0 }
     }));
   }, [setState]);
@@ -184,7 +186,20 @@ export default function App() {
     }
   }, [state.isConnecting, completeConnection, setState]);
 
-  // Get current blocks based on active tab - COMPLETELY SEPARATE
+  // Ensure clean state when switching tabs
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      draggedBlock: null,
+      isDraggingViewport: false,
+      resizingBlock: null,
+      isConnecting: false,
+      connectionStart: null,
+      viewportDragStart: { x: 0, y: 0 },
+      dragOffset: { x: 0, y: 0 },
+    }));
+  }, [state.currentTab, setState]);
+
   const currentBlocks = state.currentTab === 'ideas' ? state.ideaBlocks : state.storyBlocks;
   const selectedBlock = currentBlocks.find(b => b.id === state.selectedBlock);
   const bookmarkedBlocks = currentBlocks.filter(b => b.isBookmarked);
@@ -193,7 +208,18 @@ export default function App() {
     <div className="h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white flex flex-col overflow-hidden">
       <Header
         currentTab={state.currentTab}
-        onTabChange={(tab) => setState(prev => ({ ...prev, currentTab: tab, selectedBlock: null }))}
+        onTabChange={(tab) => setState(prev => ({
+          ...prev,
+          currentTab: tab,
+          selectedBlock: null,
+          draggedBlock: null,
+          isDraggingViewport: false,
+          resizingBlock: null,
+          isConnecting: false,
+          connectionStart: null,
+          viewportDragStart: { x: 0, y: 0 },
+          dragOffset: { x: 0, y: 0 },
+        }))}
         onCreateBlock={createNewBlock}
         onCloneIdea={cloneIdeaToStory}
         onSave={saveProject}
@@ -257,10 +283,20 @@ export default function App() {
         )}
       </div>
 
-      {/* Bottom Bar */}
       <BottomBar
         currentTab={state.currentTab}
-        onTabChange={(tab) => setState(prev => ({ ...prev, currentTab: tab, selectedBlock: null }))}
+        onTabChange={(tab) => setState(prev => ({
+          ...prev,
+          currentTab: tab,
+          selectedBlock: null,
+          draggedBlock: null,
+          isDraggingViewport: false,
+          resizingBlock: null,
+          isConnecting: false,
+          connectionStart: null,
+          viewportDragStart: { x: 0, y: 0 },
+          dragOffset: { x: 0, y: 0 },
+        }))}
         totalStoryBlocks={state.storyBlocks.length}
         totalIdeaBlocks={state.currentTab === 'ideas' ? state.ideaBlocks.length : 0}
         viewport={state.viewport}
@@ -273,7 +309,6 @@ export default function App() {
         onZoomOut={zoomOut}
       />
 
-      {/* File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -282,7 +317,6 @@ export default function App() {
         className="hidden"
       />
 
-      {/* Click outside to close bookmarks */}
       {state.showBookmarks && (
         <div
           className="fixed inset-0 z-40"
