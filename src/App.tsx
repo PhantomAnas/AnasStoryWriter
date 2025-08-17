@@ -100,17 +100,32 @@ export default function App() {
   }, [state.isConnecting, state.currentTab, state.storyBlocks, state.ideaBlocks, setState]);
 
   // ✅ Tightened: only trigger viewport drag if true background
+  // const handleViewportMouseDown = useCallback((e: React.MouseEvent) => {
+  //   if (e.target === e.currentTarget) {
+  //     e.preventDefault();
+  //     setState(prev => ({
+  //       ...prev,
+  //       isDraggingViewport: true,
+  //       viewportDragStart: { x: e.clientX, y: e.clientY },
+  //       selectedBlock: null
+  //     }));
+  //   }
+  // }, [setState]);
+
   const handleViewportMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      e.preventDefault();
-      setState(prev => ({
-        ...prev,
-        isDraggingViewport: true,
-        viewportDragStart: { x: e.clientX, y: e.clientY },
-        selectedBlock: null
-      }));
-    }
+    // If clicking directly on a block, do nothing
+    const blockElement = (e.target as HTMLElement).closest("[data-block-id]");
+    if (blockElement) return;
+
+    e.preventDefault();
+    setState(prev => ({
+      ...prev,
+      isDraggingViewport: true,
+      viewportDragStart: { x: e.clientX, y: e.clientY },
+      selectedBlock: null
+    }));
   }, [setState]);
+
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (state.draggedBlock) {
