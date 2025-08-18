@@ -107,13 +107,24 @@ export const Canvas: React.FC<CanvasProps> = ({
   });
 
   // Filter connections based on current tab
+  // const connectionsToShow = visibleBlocks.filter(block => {
+  //   if (currentTab === 'ideas') {
+  //     // In ideas tab, show connections between original idea blocks only
+  //     return block.type === 'idea' && block.id.startsWith('idea-');
+  //   } else {
+  //     // In story tab, show connections between story blocks only (not idea blocks)
+  //     return block.type === 'story';
+  //   }
+  // });
+
+  // Filter connections based on current tab
   const connectionsToShow = visibleBlocks.filter(block => {
     if (currentTab === 'ideas') {
       // In ideas tab, show connections between original idea blocks only
       return block.type === 'idea' && block.id.startsWith('idea-');
     } else {
-      // In story tab, show connections between story blocks only (not idea blocks)
-      return block.type === 'story';
+      // In story tab, show connections between story and idea blocks
+      return block.type === 'story' || block.type === 'idea';
     }
   });
 
