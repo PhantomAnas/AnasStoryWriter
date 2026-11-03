@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "storyBlocks": [
+    {
+      "id": "s1", "type": "story", "x": 80, "y": 120, "width": 280, "height": 170, "isMinimized": false,
+      "title": "The Bookshop in the Rain",
+      "content": "hero ducks into a tiny secondhand bookshop to escape a downpour and finds love reading aloud to a cat.\n- First meeting\n- *She laughs at his wet shoes*",
+      "notes": { "specialNotes": "Keep it light and funny.", "plotTwist": "", "plotHoles": "", "inspiration": "Notting Hill, the rainy opening", "category": "past" },
+      "color": "#EC4899", "isBookmarked": true, "connections": ["s2"], "priority": 0, "satisfaction": 85
+    },
+    {
+      "id": "s2", "type": "story", "x": 440, "y": 120, "width": 280, "height": 170, "isMinimized": false,
+      "title": "A Borrowed Umbrella",
+      "content": "love lends hero her umbrella. He promises to return it tomorrow. He does not know her name, only the shop.\n- The umbrella is *yellow*",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "Why doesn't he just ask her name?", "inspiration": "", "category": "past" },
+      "color": "#F59E0B", "isBookmarked": false, "connections": ["s3"], "priority": 0, "satisfaction": 60
+    },
+    {
+      "id": "s3", "type": "story", "x": 800, "y": 120, "width": 280, "height": 170, "isMinimized": false,
+      "title": "The Shop Is Gone",
+      "content": "hero returns with the umbrella. The bookshop is closed, windows papered over. A note on the door: *Thank you for twenty years.*",
+      "notes": { "specialNotes": "", "plotTwist": "The shop belonged to her grandmother, who died that week.", "plotHoles": "", "inspiration": "", "category": "hero_world" },
+      "color": "#8B5CF6", "isBookmarked": false, "connections": ["s4", "s6"], "priority": 0, "satisfaction": 70
+    },
+    {
+      "id": "s4", "type": "story", "x": 800, "y": 380, "width": 280, "height": 170, "isMinimized": false,
+      "title": "Searching the City",
+      "content": "hero visits every bookshop in town with the yellow umbrella, asking about a girl who reads to cats. friend thinks he has lost his mind.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "hero_world" },
+      "color": "#3B82F6", "isBookmarked": false, "connections": ["s5"], "priority": 0, "satisfaction": 45
+    },
+    {
+      "id": "s5", "type": "story", "x": 440, "y": 380, "width": 280, "height": 170, "isMinimized": false,
+      "title": "The Letter in the Book",
+      "content": "Inside the paperback she sold him is a pressed flower and a train ticket to the coast, dated next Sunday.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "hero_world" },
+      "color": "#10B981", "isBookmarked": true, "connections": ["s7"], "priority": 0, "satisfaction": 90
+    },
+    {
+      "id": "s6", "type": "story", "x": 1160, "y": 380, "width": 280, "height": 170, "isMinimized": false,
+      "title": "Her Side of the Story",
+      "content": "love packs up her grandmother's shop. She keeps one thing: the chair where a stranger read to the cat.",
+      "notes": { "specialNotes": "Short, quiet chapter from her point of view.", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "villain_world" },
+      "color": "#F43F5E", "isBookmarked": false, "connections": ["s7"], "priority": 0, "satisfaction": 75
+    },
+    {
+      "id": "s7", "type": "story", "x": 800, "y": 640, "width": 280, "height": 170, "isMinimized": false,
+      "title": "Sunday at the Coast",
+      "content": "hero stands on the platform with a yellow umbrella. The train arrives. *She is carrying the cat.*",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "Before Sunrise, the station scene", "category": "hero_world" },
+      "color": "#EC4899", "isBookmarked": true, "connections": [], "priority": 0, "satisfaction": 95
+    },
+    {
+      "id": "m1", "type": "idea", "x": 1160, "y": 140, "width": 260, "height": 70, "isMinimized": false,
+      "title": "Maybe the cat is named after a poet",
+      "content": "",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "past" },
+      "color": "#A855F7", "isBookmarked": false, "connections": [], "priority": 40, "satisfaction": 0
+    }
+  ],
+  "ideaBlocks": [
+    {
+      "id": "i1", "type": "idea", "x": 120, "y": 140, "width": 280, "height": 90, "isMinimized": false,
+      "title": "Rival suitor",
+      "content": "A charming customer who also wants the chair.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "past" },
+      "color": "#8B5CF6", "isBookmarked": false, "connections": ["i2"], "priority": 70, "satisfaction": 0
+    },
+    {
+      "id": "i2", "type": "idea", "x": 480, "y": 140, "width": 280, "height": 90, "isMinimized": false,
+      "title": "The chair is auctioned",
+      "content": "hero bids everything he has.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "past" },
+      "color": "#EC4899", "isBookmarked": true, "connections": [], "priority": 85, "satisfaction": 0
+    },
+    {
+      "id": "i3", "type": "idea", "x": 120, "y": 300, "width": 280, "height": 90, "isMinimized": false,
+      "title": "Grandmother's letters",
+      "content": "A box of love letters from the 1960s mirrors their story.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "past" },
+      "color": "#F59E0B", "isBookmarked": false, "connections": [], "priority": 55, "satisfaction": 0
+    },
+    {
+      "id": "i4", "type": "idea", "x": 480, "y": 300, "width": 280, "height": 90, "isMinimized": false,
+      "title": "Epilogue: the new bookshop",
+      "content": "One year later. Rain again. A cat in the window.",
+      "notes": { "specialNotes": "", "plotTwist": "", "plotHoles": "", "inspiration": "", "category": "past" },
+      "color": "#10B981", "isBookmarked": false, "connections": [], "priority": 95, "satisfaction": 0
+    }
+  ],
+  "variables": [
+    { "id": "v1", "name": "hero", "value": "Elias" },
+    { "id": "v2", "name": "love", "value": "June" },
+    { "id": "v3", "name": "friend", "value": "Marco" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "timestamp": "2026-11-03T12:00:00.000Z"
+}

@@ -6,6 +6,40 @@ Built with React, TypeScript, Vite, and Tailwind CSS. No backend, no account, no
 
 ---
 
+## Screenshots
+
+The sample story used below ships in [examples/sample-project.json](examples/sample-project.json). Load it to try everything out.
+
+**The Story board.** Scenes as blocks, curved arrows with a flowing current showing direction, a selected scene with its connections highlighted, and the Properties panel on the right.
+
+![Story board with connected scenes](docs/screenshots/story-board.png)
+
+**Connecting scenes.** Drag from the circle on a block's edge and drop it on another block. A preview line follows the pointer.
+
+![Dragging a new connection](docs/screenshots/connecting.png)
+
+**Notes per scene.** Category, special notes, plot twist, plot holes, and inspiration. Twists and holes show badges on the block.
+
+![Notes tab in the Properties panel](docs/screenshots/properties-notes.png)
+
+**Ideas board.** Loose ideas with priority, linked and bookmarked, ready to be cloned onto the Story board.
+
+![Ideas board](docs/screenshots/ideas-board.png)
+
+**Find.** Search every block by title or content, or jump to a bookmark.
+
+![Find dialog](docs/screenshots/find.png)
+
+**Full canvas.** Hide both panels and the toolbar; slim edge tabs bring them back.
+
+![Canvas with panels hidden](docs/screenshots/focus-mode.png)
+
+**Shortcuts.** Press `?` any time.
+
+![Keyboard shortcuts overlay](docs/screenshots/shortcuts.png)
+
+---
+
 ## Features
 
 ### Infinite canvas
