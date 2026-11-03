@@ -1,137 +1,169 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Waves,
+  Keyboard,
+  Lightbulb,
+  BookOpen
+} from 'lucide-react';
+import { BoardTab, Viewport } from '../types';
 
 interface BottomBarProps {
-  currentTab: 'story' | 'ideas';
-  onTabChange: (tab: 'story' | 'ideas') => void;
-  totalStoryBlocks: number;
-  totalIdeaBlocks: number;
-  viewport: { x: number; y: number; zoom: number };
+  currentTab: BoardTab;
+  onTabChange: (tab: BoardTab) => void;
+  storyCount: number;
+  ideaCount: number;
+  viewport: Viewport;
   blocksCount: number;
   variablesCount: number;
   selectedBlockTitle?: string;
   isConnecting: boolean;
+  lastAutosave: Date | null;
+  showFlow: boolean;
+  onToggleFlow: () => void;
   onMoveViewport: (direction: 'up' | 'down' | 'left' | 'right') => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onFit: () => void;
+  onResetZoom: () => void;
+  onShowHelp: () => void;
 }
+
+const navBtn = 'p-1.5 hover:bg-white/20 rounded-md transition-colors';
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   currentTab,
   onTabChange,
-  totalStoryBlocks,
-  totalIdeaBlocks,
+  storyCount,
+  ideaCount,
   viewport,
   blocksCount,
   variablesCount,
   selectedBlockTitle,
   isConnecting,
+  lastAutosave,
+  showFlow,
+  onToggleFlow,
   onMoveViewport,
   onZoomIn,
-  onZoomOut
+  onZoomOut,
+  onFit,
+  onResetZoom,
+  onShowHelp
 }) => {
+  const truncated =
+    selectedBlockTitle && selectedBlockTitle.length > 30 ? `${selectedBlockTitle.slice(0, 30)}…` : selectedBlockTitle;
+
   return (
-    <div className="bg-black/40 backdrop-blur-md px-4 py-3 border-t border-white/10 flex items-center justify-between">
-      {/* Left - Info Block */}
-      <div className="text-xs text-gray-400">
+    <footer className="bg-black/40 backdrop-blur-md px-3 py-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+      {/* Status */}
+      <div className="text-xs text-gray-400 flex items-center gap-3 min-w-0">
         {isConnecting ? (
-          <span className="text-blue-400 animate-pulse">Click on a block to connect to it...</span>
+          <span className="text-yellow-300 animate-pulse">Click a block to connect to it · Esc cancels</span>
         ) : (
-          <span>
-            {blocksCount} blocks | {variablesCount} variables{selectedBlockTitle && ` | Selected: ${selectedBlockTitle.length > 30 ? selectedBlockTitle.substring(0, 30) + '...' : selectedBlockTitle}`}
+          <span className="truncate">
+            {blocksCount} block{blocksCount === 1 ? '' : 's'} · {variablesCount} variable{variablesCount === 1 ? '' : 's'}
+            {truncated && (
+              <>
+                {' · '}
+                <span className="text-gray-200">{truncated}</span>
+              </>
+            )}
+          </span>
+        )}
+        {lastAutosave && (
+          <span className="hidden sm:inline text-gray-500" title="Autosaved to this browser. Use Save to download a file you own.">
+            Autosaved {lastAutosave.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
       </div>
 
-      {/* Center - Title and Tab Switcher in SAME ROW */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-          Story Editor
-        </h1>
-        <div className="flex bg-white/10 backdrop-blur-sm rounded-xl p-1.5 border border-white/20 shadow-lg">
-          <button
-            onClick={() => onTabChange('story')}
-            className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
-              currentTab === 'story' 
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg transform scale-105' 
-                : 'text-gray-300 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            Story ({totalStoryBlocks})
-          </button>
-          <button
-            onClick={() => onTabChange('ideas')}
-            className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
-              currentTab === 'ideas' 
-                ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow-lg transform scale-105' 
-                : 'text-gray-300 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            Ideas {currentTab === 'ideas' ? `(${totalIdeaBlocks})` : ''}
-          </button>
-        </div>
+      {/* Board switcher */}
+      <div className="flex items-center gap-1 bg-white/10 rounded-xl p-1 border border-white/15 shadow-md">
+        <button
+          onClick={() => onTabChange('story')}
+          className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 font-medium text-sm flex items-center gap-1.5 ${
+            currentTab === 'story'
+              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md'
+              : 'text-gray-300 hover:bg-white/10 hover:text-white'
+          }`}
+          title="Story board (1)"
+        >
+          <BookOpen size={14} /> Story <span className="opacity-75">({storyCount})</span>
+        </button>
+        <button
+          onClick={() => onTabChange('ideas')}
+          className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 font-medium text-sm flex items-center gap-1.5 ${
+            currentTab === 'ideas'
+              ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow-md'
+              : 'text-gray-300 hover:bg-white/10 hover:text-white'
+          }`}
+          title="Ideas board (2)"
+        >
+          <Lightbulb size={14} /> Ideas <span className="opacity-75">({ideaCount})</span>
+        </button>
       </div>
 
-      {/* Right - Controls */}
-      <div className="flex items-center gap-4">
-        {/* Navigation Controls */}
-        <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
-          <button
-            onClick={() => onMoveViewport('up')}
-            className="p-2 hover:bg-white/20 rounded transition-all duration-200"
-            title="Move up"
-          >
-            <ChevronUp size={14} />
-          </button>
-          <button
-            onClick={() => onMoveViewport('left')}
-            className="p-2 hover:bg-white/20 rounded transition-all duration-200"
-            title="Move left"
-          >
+      {/* View controls */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center bg-white/10 rounded-lg p-0.5 border border-white/15">
+          <button onClick={() => onMoveViewport('left')} className={navBtn} title="Pan left (←)">
             <ChevronLeft size={14} />
           </button>
-          <button
-            onClick={() => onMoveViewport('down')}
-            className="p-2 hover:bg-white/20 rounded transition-all duration-200"
-            title="Move down"
-          >
+          <button onClick={() => onMoveViewport('up')} className={navBtn} title="Pan up (↑)">
+            <ChevronUp size={14} />
+          </button>
+          <button onClick={() => onMoveViewport('down')} className={navBtn} title="Pan down (↓)">
             <ChevronDown size={14} />
           </button>
-          <button
-            onClick={() => onMoveViewport('right')}
-            className="p-2 hover:bg-white/20 rounded transition-all duration-200"
-            title="Move right"
-          >
+          <button onClick={() => onMoveViewport('right')} className={navBtn} title="Pan right (→)">
             <ChevronRight size={14} />
           </button>
         </div>
 
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1 border border-white/20">
-          <button
-            onClick={onZoomOut}
-            className="p-1 hover:bg-white/20 rounded transition-all duration-200"
-            title="Zoom Out"
-          >
+        <div className="flex items-center bg-white/10 rounded-lg p-0.5 border border-white/15">
+          <button onClick={onZoomOut} className={navBtn} title="Zoom out (-)">
             <ZoomOut size={14} />
           </button>
-          <span className="text-xs text-gray-300 px-2 min-w-[50px] text-center">
-            {Math.round(viewport.zoom * 100)}%
-          </span>
           <button
-            onClick={onZoomIn}
-            className="p-1 hover:bg-white/20 rounded transition-all duration-200"
-            title="Zoom In"
+            onClick={onResetZoom}
+            className="text-xs text-gray-200 px-1.5 min-w-[48px] text-center hover:bg-white/20 rounded-md py-1 transition-colors"
+            title="Reset zoom to 100% (0)"
           >
+            {Math.round(viewport.zoom * 100)}%
+          </button>
+          <button onClick={onZoomIn} className={navBtn} title="Zoom in (+)">
             <ZoomIn size={14} />
+          </button>
+          <button onClick={onFit} className={`${navBtn} border-l border-white/10 rounded-l-none`} title="Fit all blocks in view (F)">
+            <Maximize size={14} />
           </button>
         </div>
 
-        {/* Viewport Position */}
-        <div className="text-xs text-gray-400">
-          ({Math.round(viewport.x)}, {Math.round(viewport.y)})
-        </div>
+        <button
+          onClick={onToggleFlow}
+          className={`p-1.5 rounded-lg border transition-colors ${
+            showFlow ? 'bg-blue-500/30 border-blue-400/40 text-blue-100' : 'bg-white/10 border-white/15 text-gray-400 hover:text-white'
+          }`}
+          title={showFlow ? 'Flow animation on connections: on' : 'Flow animation on connections: off'}
+        >
+          <Waves size={14} />
+        </button>
+
+        <button
+          onClick={onShowHelp}
+          className="p-1.5 rounded-lg border bg-white/10 border-white/15 text-gray-400 hover:text-white transition-colors"
+          title="Keyboard shortcuts (?)"
+        >
+          <Keyboard size={14} />
+        </button>
       </div>
-    </div>
+    </footer>
   );
 };

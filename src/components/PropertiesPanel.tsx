@@ -1,253 +1,394 @@
 import React, { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Copy, Crosshair, Minimize2, Maximize2, Trash2, X, MousePointerClick } from 'lucide-react';
 import { StoryBlock } from '../types';
-import { COLORS, NOTE_CATEGORIES } from '../constants';
-import { getSatisfactionColor } from '../utils/textFormatting';
+import { BLOCK_DEFAULTS, COLORS, NOTE_CATEGORIES } from '../constants';
+import { getSatisfactionColor, getPriorityColor } from '../utils/textFormatting';
 
 interface PropertiesPanelProps {
-  selectedBlock: StoryBlock;
+  selectedBlock: StoryBlock | undefined;
   blocks: StoryBlock[];
   onUpdateBlock: (id: string, updates: Partial<StoryBlock>) => void;
+  onDeleteBlock: (id: string) => void;
+  onDuplicateBlock: (id: string) => void;
+  onRemoveConnection: (from: string, to: string) => void;
+  onGoToBlock: (id: string) => void;
+  onToggleMinimized: (id: string) => void;
+  onStartConnection: (id: string) => void;
+  onClose: () => void;
 }
+
+type Tab = 'content' | 'notes' | 'style';
+
+const field =
+  'w-full bg-white/10 px-3 py-2 rounded-lg border border-white/15 focus:border-blue-400 focus:outline-none transition-colors text-white text-sm';
+const textarea = `${field} resize-y min-h-[60px] leading-relaxed`;
 
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   selectedBlock,
   blocks,
-  onUpdateBlock
+  onUpdateBlock,
+  onDeleteBlock,
+  onDuplicateBlock,
+  onRemoveConnection,
+  onGoToBlock,
+  onToggleMinimized,
+  onStartConnection,
+  onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<'content' | 'notes' | 'style'>('content');
-  const isIdeaBlock = selectedBlock.type === 'idea';
+  const [activeTab, setActiveTab] = useState<Tab>('content');
+
+  const header = (title: string) => (
+    <div className="p-4 border-b border-white/10 bg-black/20 flex items-center justify-between gap-2">
+      <h3 className="text-base font-semibold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent truncate">
+        {title}
+      </h3>
+      <button
+        onClick={onClose}
+        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+        title="Hide panel (P)"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+
+  if (!selectedBlock) {
+    return (
+      <aside className="w-80 flex-shrink-0 bg-black/30 backdrop-blur-md border-l border-white/10 flex flex-col">
+        {header('Properties')}
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <div className="text-gray-400 text-sm">
+            <MousePointerClick size={28} className="mx-auto mb-3 text-gray-500" />
+            Select a block to edit its content, notes, and style.
+            <div className="mt-3 text-xs text-gray-500">Double-click the board to add one.</div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  const block = selectedBlock;
+  const isIdea = block.type === 'idea';
+  const incoming = blocks.filter(b => b.connections.includes(block.id));
+  const outgoing = block.connections
+    .map(id => blocks.find(b => b.id === id))
+    .filter((b): b is StoryBlock => Boolean(b));
+
+  const updateNotes = (patch: Partial<StoryBlock['notes']>) =>
+    onUpdateBlock(block.id, { notes: { ...block.notes, ...patch } });
 
   return (
-    <div className="w-80 bg-black/30 backdrop-blur-md border-l border-white/10 overflow-y-auto">
-      <div className="p-4 border-b border-white/10 bg-black/20">
-        <h3 className="text-lg font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-          {isIdeaBlock ? 'Idea' : 'Block'} Properties
-        </h3>
-        
-        {/* Tab Navigation */}
-        <div className="flex mt-3 bg-white/10 rounded-lg p-1">
-          {['content', 'notes', 'style'].map((tab) => (
+    <aside className="w-80 flex-shrink-0 bg-black/30 backdrop-blur-md border-l border-white/10 flex flex-col min-h-0">
+      {header(isIdea ? 'Idea' : 'Scene')}
+
+      <div className="px-4 pt-3">
+        <div className="flex bg-white/10 rounded-lg p-1">
+          {(['content', 'notes', 'style'] as Tab[]).map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all duration-200 ${
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
                 activeTab === tab
-                  ? 'bg-blue-500/30 text-blue-200 shadow-sm'
+                  ? 'bg-blue-500/30 text-blue-100 shadow-sm'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'notes' && (block.notes.plotTwist.trim() || block.notes.plotHoles.trim()) ? ' •' : ''}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="p-4">
-        {/* Content Tab */}
+      <div className="p-4 overflow-y-auto flex-1 min-h-0 space-y-5">
         {activeTab === 'content' && (
-          <div className="space-y-4">
+          <>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Title</label>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">Title</label>
               <input
                 type="text"
-                value={selectedBlock.title}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, { title: e.target.value })}
-                className="w-full bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white"
+                value={block.title}
+                onChange={e => onUpdateBlock(block.id, { title: e.target.value })}
+                className={field}
+                placeholder={isIdea ? 'Idea title' : 'Scene title'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Content</label>
-              <div className="text-xs text-gray-400 mb-2">
-                Use <code>-</code> for bullets, <code>*text*</code> for bold
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-gray-400">Content</label>
+                <span className="text-[11px] text-gray-500">
+                  <code className="text-gray-400">*bold*</code> · <code className="text-gray-400">- bullet</code>
+                </span>
               </div>
               <textarea
-                value={selectedBlock.content}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, { content: e.target.value })}
-                className="w-full h-40 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white resize-y min-h-[100px]"
-                placeholder={isIdeaBlock ? "Describe your idea..." : "Enter your story content..."}
+                value={block.content}
+                onChange={e => onUpdateBlock(block.id, { content: e.target.value })}
+                className={`${textarea} h-56`}
+                placeholder={isIdea ? 'Describe your idea...' : 'What happens in this scene?'}
               />
             </div>
 
-            {/* Satisfaction Slider for Story Blocks */}
-            {!isIdeaBlock && (
+            {!isIdea ? (
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-300">Satisfaction</label>
+                <label className="block text-xs font-medium mb-1.5 text-gray-400">
+                  Satisfaction <span className="text-gray-500">· how happy you are with this scene</span>
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min="0"
                     max="100"
-                    value={selectedBlock.satisfaction}
-                    onChange={(e) => onUpdateBlock(selectedBlock.id, { satisfaction: parseInt(e.target.value) })}
-                    className="flex-1 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, #EF4444 0%, #F59E0B 50%, #10B981 100%)`
-                    }}
+                    value={block.satisfaction}
+                    onChange={e => onUpdateBlock(block.id, { satisfaction: parseInt(e.target.value, 10) })}
+                    className="flex-1 satisfaction-range"
                   />
-                  <div 
-                    className="w-6 h-6 rounded-full border-2 border-white/20"
-                    style={{ backgroundColor: getSatisfactionColor(selectedBlock.satisfaction) }}
+                  <div
+                    className="w-5 h-5 rounded-full border-2 border-white/20 flex-shrink-0"
+                    style={{ backgroundColor: getSatisfactionColor(block.satisfaction) }}
                   />
-                  <span className="text-xs text-gray-400 w-8">{selectedBlock.satisfaction}</span>
+                  <span className="text-xs text-gray-400 w-8 text-right">{block.satisfaction}</span>
                 </div>
               </div>
-            )}
-
-            {/* Priority Slider for Idea Blocks */}
-            {isIdeaBlock && (
+            ) : (
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-300">Priority</label>
+                <label className="block text-xs font-medium mb-1.5 text-gray-400">Priority</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min="0"
                     max="100"
-                    value={selectedBlock.priority}
-                    onChange={(e) => onUpdateBlock(selectedBlock.id, { priority: parseInt(e.target.value) })}
-                    className="flex-1 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                    value={block.priority}
+                    onChange={e => onUpdateBlock(block.id, { priority: parseInt(e.target.value, 10) })}
+                    className="flex-1 satisfaction-range"
                   />
-                  <span className="text-xs text-gray-400 w-8">{selectedBlock.priority}</span>
+                  <div
+                    className="w-5 h-5 rounded-full border-2 border-white/20 flex-shrink-0"
+                    style={{ backgroundColor: getPriorityColor(block.priority) }}
+                  />
+                  <span className="text-xs text-gray-400 w-8 text-right">{block.priority}</span>
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Notes Tab */}
         {activeTab === 'notes' && (
-          <div className="space-y-4">
+          <>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Category</label>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">Category</label>
               <select
-                value={selectedBlock.notes.category}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                  notes: { ...selectedBlock.notes, category: e.target.value as any }
-                })}
-                className="w-full bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white"
+                value={block.notes.category}
+                onChange={e => updateNotes({ category: e.target.value as StoryBlock['notes']['category'] })}
+                className={field}
               >
                 {NOTE_CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value} className="bg-gray-800">{cat.label}</option>
+                  <option key={cat.value} value={cat.value} className="bg-gray-800">
+                    {cat.label}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Special Notes</label>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">Special notes</label>
               <textarea
-                value={selectedBlock.notes.specialNotes}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                  notes: { ...selectedBlock.notes, specialNotes: e.target.value }
-                })}
-                className="w-full h-24 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white resize-y min-h-[60px]"
-                placeholder="Special notes..."
+                value={block.notes.specialNotes}
+                onChange={e => updateNotes({ specialNotes: e.target.value })}
+                className={`${textarea} h-24`}
+                placeholder="Anything to remember about this scene..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300 flex items-center gap-2">
-                Plot Twist <span className="text-purple-400">⚡</span>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">
+                Plot twist <span className="text-purple-400">⚡</span>
+                <span className="text-gray-500"> · shows a badge on the block</span>
               </label>
               <textarea
-                value={selectedBlock.notes.plotTwist}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                  notes: { ...selectedBlock.notes, plotTwist: e.target.value }
-                })}
-                className="w-full h-24 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white resize-y min-h-[60px]"
+                value={block.notes.plotTwist}
+                onChange={e => updateNotes({ plotTwist: e.target.value })}
+                className={`${textarea} h-24`}
                 placeholder="Plot twist ideas..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300 flex items-center gap-2">
-                Plot Holes <span className="text-red-400">⚠</span>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">
+                Plot holes <span className="text-red-400">⚠</span>
+                <span className="text-gray-500"> · clear it once resolved</span>
               </label>
               <textarea
-                value={selectedBlock.notes.plotHoles}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                  notes: { ...selectedBlock.notes, plotHoles: e.target.value }
-                })}
-                className="w-full h-24 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white resize-y min-h-[60px]"
-                placeholder="Plot holes to fix..."
+                value={block.notes.plotHoles}
+                onChange={e => updateNotes({ plotHoles: e.target.value })}
+                className={`${textarea} h-24`}
+                placeholder="Problems to fix..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Inspiration</label>
+              <label className="block text-xs font-medium mb-1.5 text-gray-400">Inspiration</label>
               <textarea
-                value={selectedBlock.notes.inspiration}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                  notes: { ...selectedBlock.notes, inspiration: e.target.value }
-                })}
-                className="w-full h-24 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white resize-y min-h-[60px]"
-                placeholder="Inspiration and references..."
+                value={block.notes.inspiration}
+                onChange={e => updateNotes({ inspiration: e.target.value })}
+                className={`${textarea} h-24`}
+                placeholder="References, sources, moods..."
               />
             </div>
-          </div>
+          </>
         )}
 
-        {/* Style Tab */}
         {activeTab === 'style' && (
-          <div className="space-y-4">
+          <>
             <div>
-              <label className="block text-sm font-medium mb-3 text-gray-300">Border Color</label>
-              <div className="grid grid-cols-4 gap-2">
+              <label className="block text-xs font-medium mb-2 text-gray-400">Accent color</label>
+              <div className="grid grid-cols-8 gap-2">
                 {COLORS.map(color => (
                   <button
                     key={color}
-                    onClick={() => onUpdateBlock(selectedBlock.id, { color })}
-                    className={`w-10 h-10 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${
-                      selectedBlock.color === color ? 'border-white shadow-lg' : 'border-gray-600 hover:border-gray-400'
+                    onClick={() => onUpdateBlock(block.id, { color })}
+                    className={`w-7 h-7 rounded-lg border-2 transition-transform hover:scale-110 ${
+                      block.color === color ? 'border-white' : 'border-transparent'
                     }`}
-                    style={{ 
-                      backgroundColor: color,
-                      boxShadow: selectedBlock.color === color ? `0 0 15px ${color}40` : undefined
-                    }}
+                    style={{ backgroundColor: color, boxShadow: block.color === color ? `0 0 12px ${color}80` : undefined }}
+                    title={color}
                   />
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Height</label>
-              <input
-                type="number"
-                value={selectedBlock.height}
-                onChange={(e) => onUpdateBlock(selectedBlock.id, { height: parseInt(e.target.value) || 80 })}
-                className="w-full bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 focus:border-blue-400 focus:outline-none transition-all duration-200 text-white"
-                min="80"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-400">Width</label>
+                <input
+                  type="number"
+                  value={block.width}
+                  min={BLOCK_DEFAULTS.minWidth}
+                  onChange={e =>
+                    onUpdateBlock(block.id, {
+                      width: Math.max(BLOCK_DEFAULTS.minWidth, parseInt(e.target.value, 10) || BLOCK_DEFAULTS.minWidth)
+                    })
+                  }
+                  className={field}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-400">Height</label>
+                <input
+                  type="number"
+                  value={block.height}
+                  min={BLOCK_DEFAULTS.minHeight}
+                  onChange={e =>
+                    onUpdateBlock(block.id, {
+                      height: Math.max(BLOCK_DEFAULTS.minHeight, parseInt(e.target.value, 10) || BLOCK_DEFAULTS.minHeight)
+                    })
+                  }
+                  className={field}
+                />
+              </div>
             </div>
-          </div>
+            <p className="text-[11px] text-gray-500 -mt-2">You can also drag the bottom-right corner of a block.</p>
+
+            <button
+              onClick={() => onToggleMinimized(block.id)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm border border-white/10 transition-colors"
+            >
+              {block.isMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+              {block.isMinimized ? 'Expand block' : 'Minimize to header'}
+            </button>
+          </>
         )}
 
-        {/* Connections Section */}
-        <div className="mt-6 pt-4 border-t border-white/10">
-          <h4 className="text-sm font-medium mb-3 text-gray-300">Connections</h4>
-          <div className="text-xs text-gray-400 mb-2">
-            Connected to: {selectedBlock.connections.length} blocks
+        {/* Connections */}
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wide">Connections</h4>
+            <button
+              onClick={() => onStartConnection(block.id)}
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/40 text-blue-200 transition-colors"
+              title="Then click the block it should lead to"
+            >
+              <Crosshair size={12} /> Connect
+            </button>
           </div>
-          <div className="space-y-2">
-            {selectedBlock.connections.map(connId => {
-              const connectedBlock = blocks.find(b => b.id === connId);
-              return (
-                <div key={connId} className="flex items-center justify-between bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/10">
-                  <span className="text-xs text-gray-200">{connectedBlock?.title || 'Unknown'}</span>
-                  <button
-                    onClick={() => onUpdateBlock(selectedBlock.id, {
-                      connections: selectedBlock.connections.filter(id => id !== connId)
-                    })}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-1 rounded transition-colors"
-                  >
-                    <Trash2 size={10} />
-                  </button>
+
+          <div className="space-y-1.5">
+            <div className="text-[11px] text-gray-500 flex items-center gap-1">
+              <ArrowRight size={11} /> Leads to {outgoing.length === 0 && <span className="italic">nothing yet</span>}
+            </div>
+            {outgoing.map(target => (
+              <div
+                key={target.id}
+                className="flex items-center justify-between bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/10 gap-2"
+              >
+                <button
+                  onClick={() => onGoToBlock(target.id)}
+                  className="text-xs text-gray-200 hover:text-white truncate text-left flex-1 flex items-center gap-2"
+                  title="Go to block"
+                >
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: target.color }} />
+                  <span className="truncate">{target.title || 'Untitled'}</span>
+                </button>
+                <button
+                  onClick={() => onRemoveConnection(block.id, target.id)}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-1 rounded transition-colors flex-shrink-0"
+                  title="Remove connection"
+                >
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            ))}
+
+            {incoming.length > 0 && (
+              <>
+                <div className="text-[11px] text-gray-500 flex items-center gap-1 pt-1">
+                  <ArrowLeft size={11} /> Comes from
                 </div>
-              );
-            })}
+                {incoming.map(source => (
+                  <div
+                    key={source.id}
+                    className="flex items-center justify-between bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/10 gap-2"
+                  >
+                    <button
+                      onClick={() => onGoToBlock(source.id)}
+                      className="text-xs text-gray-300 hover:text-white truncate text-left flex-1 flex items-center gap-2"
+                      title="Go to block"
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: source.color }} />
+                      <span className="truncate">{source.title || 'Untitled'}</span>
+                    </button>
+                    <button
+                      onClick={() => onRemoveConnection(source.id, block.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-1 rounded transition-colors flex-shrink-0"
+                      title="Remove connection"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="pt-4 border-t border-white/10 flex gap-2">
+          <button
+            onClick={() => onDuplicateBlock(block.id)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm border border-white/10 transition-colors"
+            title="Duplicate (Ctrl+D)"
+          >
+            <Copy size={14} /> Duplicate
+          </button>
+          <button
+            onClick={() => onDeleteBlock(block.id)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-lg text-sm border border-red-500/30 transition-colors"
+            title="Delete (Del). Undo with Ctrl+Z."
+          >
+            <Trash2 size={14} /> Delete
+          </button>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 };

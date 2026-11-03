@@ -1,25 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { Bookmark, BookmarkPlus, X, Trash2, Minimize2, Maximize2, Copy, Lightbulb, AlertTriangle, CheckCircle } from 'lucide-react';
-import { StoryBlock as StoryBlockType } from '../types';
-import { formatText, hasPlotTwist, hasPlotHole, getSatisfactionColor, getPriorityColor } from '../utils/textFormatting';
+import React from 'react';
+import {
+  Bookmark,
+  BookmarkPlus,
+  X,
+  Trash2,
+  Minimize2,
+  Maximize2,
+  Copy,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle,
+  Zap,
+  ArrowRight
+} from 'lucide-react';
+import { BoardTab, StoryBlock as StoryBlockType } from '../types';
+import { formatText, hasPlotTwist, hasPlotHole, getSatisfactionColor } from '../utils/textFormatting';
+import { renderedHeight } from '../utils/project';
+import { NOTE_CATEGORIES } from '../constants';
 
 interface StoryBlockProps {
   block: StoryBlockType;
-  currentTab: 'story' | 'ideas';
+  currentTab: BoardTab;
   isSelected: boolean;
   isDragged: boolean;
   isConnecting: boolean;
   connectionStart: string | null;
+  isFlashing: boolean;
   replaceVariables: (text: string) => string;
-  onMouseDown: (e: React.MouseEvent, blockId: string) => void;
+  onDragStart: (e: React.PointerEvent<HTMLDivElement>, blockId: string) => void;
   onClick: (e: React.MouseEvent, blockId: string) => void;
   onUpdateBlock: (id: string, updates: Partial<StoryBlockType>) => void;
   onDeleteBlock: (id: string) => void;
-  onStartConnection: (blockId: string) => void;
+  onConnectDragStart: (e: React.PointerEvent, blockId: string) => void;
   onCancelConnection: () => void;
   onToggleMinimized: (blockId: string) => void;
+  onResizeStart: (e: React.PointerEvent, blockId: string) => void;
   onCloneIdea?: (ideaId: string) => void;
 }
+
+const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 export const StoryBlock: React.FC<StoryBlockProps> = ({
   block,
@@ -28,264 +47,230 @@ export const StoryBlock: React.FC<StoryBlockProps> = ({
   isDragged,
   isConnecting,
   connectionStart,
+  isFlashing,
   replaceVariables,
-  onMouseDown,
+  onDragStart,
   onClick,
   onUpdateBlock,
   onDeleteBlock,
-  onStartConnection,
+  onConnectDragStart,
   onCancelConnection,
   onToggleMinimized,
+  onResizeStart,
   onCloneIdea
 }) => {
-  const [isFlashing, setIsFlashing] = useState(false);
-
-  // Flash effect when navigating to bookmark
-  useEffect(() => {
-    const element = document.querySelector(`[data-block-id="${block.id}"]`);
-    if (element && element.classList.contains('flash-bookmark')) {
-      setIsFlashing(true);
-      setTimeout(() => {
-        setIsFlashing(false);
-        element.classList.remove('flash-bookmark');
-      }, 1000);
-    }
-  }, [block.id]);
-
-  const isIdeaBlock = block.type === 'idea';
-  const showMinimized = false; // Remove auto-minimize logic
+  const isIdea = block.type === 'idea';
+  const isSource = isConnecting && connectionStart === block.id;
+  const isTarget = isConnecting && connectionStart !== block.id;
   const showPlotTwist = hasPlotTwist(block);
   const showPlotHole = hasPlotHole(block);
-  const isMinimized = block.height === 64; // Check if minimized
+  const height = renderedHeight(block);
+  const categoryLabel = NOTE_CATEGORIES.find(c => c.value === block.notes.category)?.label ?? '';
+
+  const iconButton =
+    'p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40';
 
   return (
     <div
       data-block-id={block.id}
       className={`
-        absolute bg-black/40 backdrop-blur-md rounded-xl shadow-2xl cursor-move select-none border transition-all duration-300
-        ${!isDragged ? 'transition-all duration-200' : 'transition-none'}
-        ${isSelected ? 'shadow-blue-500/50 !border-blue-400 shadow-2xl' : 'border-white/20'}
-        ${isConnecting && connectionStart === block.id ? 'animate-pulse-strong !border-yellow-400' : ''}
-        ${isConnecting && connectionStart !== block.id ? 'hover:!border-green-400' : ''}
-        ${isFlashing ? 'animate-pulse !border-yellow-300 !shadow-yellow-300/50' : ''}
-        ${showMinimized ? 'opacity-75 hover:opacity-100' : ''}
+        group absolute rounded-xl select-none backdrop-blur-md bg-slate-950/60
+        ${isDragged ? 'cursor-grabbing transition-none' : 'cursor-grab transition-shadow duration-200'}
+        ${isTarget ? 'cursor-crosshair hover:ring-2 hover:ring-green-400' : ''}
+        ${isSource ? 'ring-2 ring-yellow-400 animate-pulse-strong' : ''}
+        ${isFlashing ? 'flash-bookmark' : ''}
       `}
       style={{
         left: block.x,
         top: block.y,
         width: block.width,
-        height: block.height,
+        height,
         display: 'flex',
         flexDirection: 'column',
-        border: isIdeaBlock 
-          ? `3px solid ${block.color}`
-          : `1px solid rgba(255, 255, 255, 0.2)`,
-        borderTop: isIdeaBlock 
-          ? `3px solid ${block.color}`
-          : `4px solid ${block.color}`,
-        boxShadow: isSelected 
-          ? `0 0 30px ${block.color}50, 0 20px 25px -5px rgb(0 0 0 / 0.5)` 
-          : `0 15px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3)`,
+        border: isIdea ? `2px solid ${block.color}` : '1px solid rgba(255, 255, 255, 0.18)',
+        borderTop: isIdea ? `2px solid ${block.color}` : `4px solid ${block.color}`,
+        boxShadow: isSelected
+          ? `0 0 0 2px rgba(255,255,255,0.85), 0 0 28px ${block.color}66, 0 20px 25px -5px rgb(0 0 0 / 0.5)`
+          : '0 15px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3)',
         zIndex: isSelected ? 20 : isDragged ? 15 : 10,
-        pointerEvents: isDragged ? 'none' : 'auto'
+        opacity: isDragged ? 0.9 : 1
       }}
-      onMouseDown={(e) => {
-        // Don't handle mousedown if it's on a button
-        if (e.target.closest('button')) {
-          return;
-        }
-        if (!isConnecting) {
-          e.preventDefault();
-          onMouseDown(e, block.id);
-        }
-      }}
-      onClick={(e) => onClick(e, block.id)}
+      onPointerDown={e => onDragStart(e, block.id)}
+      onClick={e => onClick(e, block.id)}
     >
-      {/* Block Header */}
-      <div className="p-3 border-b border-white/20 flex items-center justify-between bg-black/20 rounded-t-xl">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Status Indicators */}
-          <div className="flex items-center gap-1">
-            {isIdeaBlock && (
-              <Lightbulb size={12} className="text-yellow-400" />
-            )}
-            {!isIdeaBlock && (
-              <CheckCircle 
-                size={12} 
+      {/* Header */}
+      <div
+        className={`px-2 py-1.5 flex items-center justify-between gap-1 bg-black/25 rounded-t-xl ${
+          block.isMinimized ? 'h-full' : 'border-b border-white/10'
+        }`}
+      >
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {isIdea ? (
+              <Lightbulb size={13} className="text-yellow-400" aria-label="Idea" />
+            ) : (
+              <CheckCircle
+                size={13}
                 style={{ color: getSatisfactionColor(block.satisfaction) }}
+                aria-label={`Satisfaction ${block.satisfaction}%`}
               />
             )}
-            {showPlotTwist && (
-              <span className="text-xs text-purple-400" title="Plot Twist">⚡</span>
-            )}
-            {showPlotHole && (
-              <AlertTriangle size={10} className="text-red-400" title="Plot Hole" />
-            )}
+            {showPlotTwist && <Zap size={12} className="text-purple-400" aria-label="Has a plot twist" />}
+            {showPlotHole && <AlertTriangle size={12} className="text-red-400" aria-label="Has plot holes" />}
           </div>
-          
+
           <button
-            onClick={(e) => {
+            onPointerDown={stop}
+            onClick={e => {
               e.stopPropagation();
               onUpdateBlock(block.id, { isBookmarked: !block.isBookmarked });
             }}
-            className={`p-1 rounded-md transition-colors ${
-              block.isBookmarked ? 'text-yellow-400' : 'text-gray-400'
-            } hover:bg-yellow-500/20`}
-            title={block.isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+            className={`${iconButton} ${block.isBookmarked ? 'text-yellow-400' : 'text-gray-500 hover:text-gray-300'} hover:bg-yellow-500/20`}
+            title={block.isBookmarked ? 'Remove bookmark' : 'Bookmark this block'}
           >
             {block.isBookmarked ? <Bookmark size={12} fill="currentColor" /> : <BookmarkPlus size={12} />}
           </button>
-          
+
           <input
             type="text"
             value={block.title}
-            onChange={(e) => onUpdateBlock(block.id, { title: e.target.value })}
-            className="bg-transparent text-sm font-semibold flex-1 min-w-0 outline-none focus:bg-white/20 rounded px-2 py-1 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            placeholder={isIdea ? 'Idea title' : 'Scene title'}
+            onChange={e => onUpdateBlock(block.id, { title: e.target.value })}
+            onPointerDown={stop}
+            onClick={stop}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === 'Escape') (e.target as HTMLInputElement).blur();
+            }}
+            className="bg-transparent text-sm font-semibold flex-1 min-w-0 outline-none focus:bg-white/15 rounded px-1.5 py-0.5 transition-colors placeholder:text-gray-500 cursor-text"
+            spellCheck={false}
           />
         </div>
-        
-        <div className="flex items-center gap-1 ml-2">
-          {/* Clone Idea Button (only for idea blocks in ideas tab) */}
-          {isIdeaBlock && currentTab === 'ideas' && onCloneIdea && (
+
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {isIdea && currentTab === 'ideas' && onCloneIdea && (
             <button
-              onClick={(e) => {
+              onPointerDown={stop}
+              onClick={e => {
                 e.stopPropagation();
                 onCloneIdea(block.id);
               }}
-              className="p-1 rounded-md text-green-400 hover:bg-green-500/20 transition-colors"
-              title="Clone to Story"
+              className={`${iconButton} text-green-400 hover:bg-green-500/20`}
+              title="Place a copy on the Story board"
             >
               <Copy size={12} />
             </button>
           )}
-          
-          {/* Minimize/Maximize Button */}
-          {block.type === 'story' && (
-            <button
-              onMouseDown={(e) => {
-                e.stopPropagation();
-              }}
-              onMouseUp={(e) => {
-                e.stopPropagation();
-                if (isMinimized) {
-                  // It's minimized, restore to original height or default to 160
-                  const restoreHeight = block.originalHeight || 160;
-                  onUpdateBlock(block.id, { height: restoreHeight });
-                } else {
-                  // It's normal, minimize to 64 and save current height
-                  onUpdateBlock(block.id, { 
-                    originalHeight: block.height,
-                    height: 64 
-                  });
-                }
-              }}
-              className="p-1 rounded-md text-gray-400 hover:bg-gray-500/20 transition-colors"
-              title={isMinimized ? 'Maximize' : 'Minimize'}
-              style={{ 
-                pointerEvents: 'auto',
-                zIndex: 999,
-                position: 'relative'
-              }}
-            >
-              {isMinimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
-            </button>
-          )}
-          
-          {/* Connection Button */}
+
           <button
-            onClick={(e) => {
+            onPointerDown={stop}
+            onClick={e => {
               e.stopPropagation();
-              if (isConnecting && connectionStart === block.id) {
-                onCancelConnection();
-              } else {
-                onStartConnection(block.id);
-              }
+              onToggleMinimized(block.id);
             }}
-            className={`p-1 rounded-md transition-colors ${
-              isConnecting && connectionStart === block.id
-                ? 'text-yellow-400 bg-yellow-500/20'
-                : 'text-blue-400 hover:bg-blue-500/20'
-            }`}
-            title={
-              isConnecting && connectionStart === block.id
-                ? 'Cancel connection'
-                : 'Connect to another block'
-            }
+            className={`${iconButton} text-gray-400 hover:bg-white/15`}
+            title={block.isMinimized ? 'Expand (M)' : 'Minimize (M)'}
           >
-            {isConnecting && connectionStart === block.id ? <X size={12} /> : <span className="text-xs">→</span>}
+            {block.isMinimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+          </button>
+
+          <button
+            onPointerDown={e => {
+              e.stopPropagation();
+              if (isSource) return;
+              onConnectDragStart(e, block.id);
+            }}
+            onClick={e => {
+              e.stopPropagation();
+              if (isSource) onCancelConnection();
+            }}
+            className={`${iconButton} ${
+              isSource ? 'text-yellow-300 bg-yellow-500/25' : 'text-blue-300 hover:bg-blue-500/25'
+            }`}
+            title={isSource ? 'Cancel connection (Esc)' : 'Connect: click, then click another block. Or drag to it.'}
+          >
+            {isSource ? <X size={12} /> : <ArrowRight size={12} />}
           </button>
         </div>
       </div>
 
-      {/* Block Content */}
-      <div className="p-3 flex-1 overflow-hidden flex flex-col">
-        {isMinimized ? (
-          // Don't show any content when minimized
-          null
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Content area - show formatted preview only */}
-            {block.type === 'story' && (
-              <div className="flex-1 min-h-0 overflow-hidden">
-                {block.content ? (
-                  <div 
-                    className="text-xs text-gray-300 leading-relaxed h-full overflow-y-auto modern-scrollbar"
-                    dangerouslySetInnerHTML={{ 
-                      __html: formatText(replaceVariables(block.content))
-                        .replace(/\n/g, '<br>')
-                    }} 
-                  />
-                ) : (
-                  <div className="text-xs text-gray-500 italic">No content yet...</div>
-                )}
-              </div>
-            )}
-            
-            {/* Priority display for idea blocks in IDEAS tab only */}
-            {isIdeaBlock && currentTab === 'ideas' && (
-              <div className="mt-2 pt-2 border-t border-white/10 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">Priority:</span>
-                  <div className="flex-1 h-1 bg-gray-600 rounded-lg relative">
-                    <div 
-                      className="h-full rounded-lg"
-                      style={{
-                        width: `${block.priority}%`,
-                        backgroundColor: getPriorityColor(block.priority)
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-400 w-8">{block.priority}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Body */}
+      {!block.isMinimized && (
+        <div className="px-3 py-2 flex-1 min-h-0 flex flex-col">
+          {block.content ? (
+            <div
+              className="text-xs text-gray-300 leading-relaxed flex-1 min-h-0 overflow-y-auto modern-scrollbar pr-1"
+              dangerouslySetInnerHTML={{ __html: formatText(replaceVariables(block.content)) }}
+            />
+          ) : (
+            <div className="text-xs text-gray-500 italic">
+              {isIdea ? 'No details yet' : 'No content yet. Write in the Properties panel.'}
+            </div>
+          )}
+          {!isIdea && categoryLabel && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-gray-500 flex-shrink-0 truncate">
+              {categoryLabel}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Priority progress bar for ALL idea blocks */}
-      {isIdeaBlock && !isMinimized && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700/50 rounded-b-xl overflow-hidden">
-          <div 
+      {/* Progress strip along the bottom edge */}
+      {!block.isMinimized && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5 rounded-b-xl overflow-hidden"
+          title={isIdea ? `Priority ${block.priority}%` : `Satisfaction ${block.satisfaction}%`}
+        >
+          <div
             className="h-full transition-all duration-300"
             style={{
-              width: `${block.priority}%`,
-              background: `linear-gradient(90deg, #EF4444 0%, #F59E0B 50%, #10B981 100%)`,
-              opacity: 0.8
+              width: `${isIdea ? block.priority : block.satisfaction}%`,
+              background: 'linear-gradient(90deg, #EF4444 0%, #F59E0B 50%, #10B981 100%)',
+              opacity: 0.85
             }}
           />
         </div>
       )}
 
-      {/* Delete Button */}
-      {isSelected && (
+      {/* Connection port: drag from here onto another block */}
+      <button
+        onPointerDown={e => {
+          e.stopPropagation();
+          onConnectDragStart(e, block.id);
+        }}
+        onClick={stop}
+        className={`absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 bg-slate-900 transition-all duration-150
+          ${isSource
+            ? 'border-yellow-400 bg-yellow-400/40 opacity-100 scale-110'
+            : 'border-blue-400 opacity-50 group-hover:opacity-100 hover:scale-125 hover:bg-blue-500/40'}
+          ${isSelected ? 'opacity-100' : ''}`}
+        style={{ cursor: 'crosshair', zIndex: 2 }}
+        title="Drag to another block to connect"
+        aria-label="Connection port"
+      />
+
+      {/* Resize handle */}
+      {!block.isMinimized && (
+        <div
+          onPointerDown={e => onResizeStart(e, block.id)}
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity"
+          title="Drag to resize"
+        >
+          <svg viewBox="0 0 16 16" className="w-full h-full text-gray-300">
+            <path d="M15 1 L1 15 M15 7 L7 15 M15 12 L12 15" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          </svg>
+        </div>
+      )}
+
+      {/* Delete */}
+      {isSelected && !isConnecting && (
         <button
-          onClick={(e) => {
+          onPointerDown={stop}
+          onClick={e => {
             e.stopPropagation();
             onDeleteBlock(block.id);
           }}
-          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute -top-2.5 -left-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-transform duration-150 hover:scale-110"
+          title="Delete block (Del). Undo with Ctrl+Z."
         >
           <Trash2 size={10} />
         </button>

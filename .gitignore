@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Private writing. Project files saved by the app must never be committed.
+story-project-*.json
+*.story.json
+story-*.md
+story-*.txt
+/projects/
+/stories/
+/drafts/

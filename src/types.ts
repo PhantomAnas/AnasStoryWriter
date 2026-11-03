@@ -1,26 +1,37 @@
+export type BlockType = 'story' | 'idea';
+export type BoardTab = 'story' | 'ideas';
+export type NoteCategory = 'past' | 'villain_world' | 'hero_world';
+
+export interface BlockNotes {
+  specialNotes: string;
+  plotTwist: string;
+  plotHoles: string;
+  inspiration: string;
+  category: NoteCategory;
+}
+
 export interface StoryBlock {
   id: string;
-  type: 'story' | 'idea';
+  type: BlockType;
   x: number;
   y: number;
   width: number;
+  /** Expanded height. When `isMinimized` is true the block renders as a header-only strip instead. */
   height: number;
   isMinimized: boolean;
   title: string;
   content: string;
-  notes: {
-    specialNotes: string;
-    plotTwist: string;
-    plotHoles: string;
-    inspiration: string;
-    category: 'past' | 'villain_world' | 'hero_world';
-  };
+  notes: BlockNotes;
   color: string;
   isBookmarked: boolean;
+  /** Ids of blocks this block points to (outgoing arrows). */
   connections: string[];
-  priority: number; // 0-100 for idea blocks
-  satisfaction: number; // 0-100 for story blocks
-  originalHeight?: number; // Store original height before minimizing
+  /** 0-100, used by idea blocks. */
+  priority: number;
+  /** 0-100, used by story blocks. */
+  satisfaction: number;
+  /** Legacy field: older files stored the pre-minimize height here. Kept for compatibility. */
+  originalHeight?: number;
 }
 
 export interface Variable {
@@ -29,29 +40,48 @@ export interface Variable {
   value: string;
 }
 
-export interface AppState {
-  currentTab: 'story' | 'ideas';
+export interface Viewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/** Shape of a saved project file. */
+export interface ProjectData {
   storyBlocks: StoryBlock[];
   ideaBlocks: StoryBlock[];
   variables: Variable[];
+  viewport: Viewport;
+  timestamp?: string;
+  version?: number;
+}
+
+export interface ConnectionRef {
+  from: string;
+  to: string;
+}
+
+export interface AppState {
+  currentTab: BoardTab;
+  storyBlocks: StoryBlock[];
+  ideaBlocks: StoryBlock[];
+  variables: Variable[];
+  viewport: Viewport;
   selectedBlock: string | null;
-  draggedBlock: string | null;
-  dragOffset: { x: number; y: number };
+  selectedConnection: ConnectionRef | null;
   isConnecting: boolean;
   connectionStart: string | null;
   showVariables: boolean;
   showProperties: boolean;
   showBookmarks: boolean;
   headerCollapsed: boolean;
-  viewport: { x: number; y: number; zoom: number };
-  isDraggingViewport: boolean;
-  viewportDragStart: { x: number; y: number };
-  resizingBlock: { id: string; startX: number; startY: number; startW: number; startH: number; } | null;
+  /** Animated "current" flowing along connection lines. */
+  showFlow: boolean;
+  /** Block that should flash briefly (after navigating to it). */
+  flashBlockId: string | null;
 }
 
-export interface ConnectionPoints {
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
+export interface Point {
+  x: number;
+  y: number;
 }
